@@ -27,6 +27,14 @@ const App: React.FC = () => {
     setInput("");
   };
 
+  const sendFile = async () => {
+    await fetch("http://localhost:4000/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: input }),
+    })
+  }
+
   return (
     <div>
       <h1>Chat REST → WebSocket</h1>
@@ -37,6 +45,16 @@ const App: React.FC = () => {
           <p key={i}>{msg}</p>
         ))}
       </div>
+
+      <h1>Archivos</h1>
+      <form 
+      id='uploadForm' 
+      action={sendFile}
+      method='post' 
+      encType="multipart/form-data">
+        <input type="file" name="file" />
+        <input type='submit' value='Upload!' />
+    </form> 
     </div>
   );
 };
