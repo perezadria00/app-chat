@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
 const cors = require("cors");
-const fileUpload = require('express-fileupload');
+const fileUpload = require("express-fileupload");
 
 const app = express();
 const port = 4000;
@@ -52,7 +52,7 @@ app.post("/upload", function(req, res){
   file = req.files.file;
   path = __dirname + '/archivos/' + file.name;
 
-  file.mv(uploadPath, function(err) {
+  file.mv(path, function(err) {
     if (err)
       return res.status(500).send(err);
 
