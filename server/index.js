@@ -36,6 +36,73 @@ app.post("/api/message", (req, res) => {
   res.json({ sent: true });
 });
 
+const fs = require("fs");
+const path = require("path");
+
+// Endpoint para el login de usuarios
+app.post("/login", (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: "Email requerido" });
+
+  const dataPath = path.join(__dirname, "data", "data.json");
+  let data;
+  try {
+    const raw = fs.readFileSync(dataPath, "utf8");
+    data = JSON.parse(raw);
+  } catch (err) {
+    console.error("Error leyendo data.json:", err);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+
+  const user = data.usuarios.find((u) => u.email === email);
+  if (!user) return res.status(401).json({ error: "Usuario no encontrado" });
+
+  res.json({ success: true, user });
+});
+const historialPath = path.join(__dirname, "data", "historial.json");
+
+// Endpoint para guardar historial
+app.post("/api/save_hist", (req, res) => {
+  const { messages } = req.body;
+  if (!Array.isArray(messages)) {
+    return res.status(400).json({ error: "Formato inválido. Se esperaba un array de mensajes." });
+  }
+
+  try {
+    fs.writeFileSync(historialPath, JSON.stringify({ mensajes: messages }, null, 2), "utf8");
+    res.json({ success: true, message: "Historial guardado correctamente" });
+  } catch (error) {
+    console.error("Error al guardar historial:", error);
+    res.status(500).json({ error: "No se pudo guardar el historial" });
+  }
+});
+
+// Endpoint para visualizar/exportar el historial
+app.get("/api/view_hist", (req, res) => {
+  const format = req.query.format;
+  const historialPath = path.join(__dirname, "data", "historial.json");
+
+  if (!fs.existsSync(historialPath)) {
+    return res.status(404).json({ error: "No hay historial guardado." });
+  }
+
+  const raw = fs.readFileSync(historialPath, "utf8");
+  const data = JSON.parse(raw);
+
+  if (format === "txt") {
+    const textoPlano = data.mensajes.join("\n");
+    res.setHeader("Content-Disposition", "attachment; filename=historial.txt");
+    res.setHeader("Content-Type", "text/plain");
+    res.send(textoPlano);
+  } else {
+    // Por defecto, devuelve JSON
+    res.setHeader("Content-Disposition", "attachment; filename=historial.json");
+    res.setHeader("Content-Type", "application/json");
+    res.send(JSON.stringify(data, null, 2));
+  }
+});
+
+
 server.listen(port, () => {
   console.log(`Servidor escuchando en http://localhost:${port}`);
 });
