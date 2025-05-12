@@ -113,9 +113,9 @@ const App: React.FC = () => {
 
       <h1>Archivos</h1>
       <form onSubmit={handleSubmit}>
-      <input type="file" onChange={handleFileChange} />
-      <button type="submit">Subir archivo</button>
-    </form> 
+        <input type="file" accept=".pdf, .txt" onChange={handleFileChange} />
+        <button type="submit">Subir archivo</button>
+      </form> 
 
     </div>
   );
