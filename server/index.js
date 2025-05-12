@@ -109,20 +109,23 @@ server.listen(port, () => {
 
 //Endpoint para enviar archivos
 app.post("/upload", function(req, res){
-  let file;
-  let path;
-
   if (!req.files || Object.keys(req.files).length === 0) {
     return res.status(400).send('No se ha subido ningún archivo');
   }
 
-  file = req.files.file;
-  path = __dirname + '/archivos/' + file.name;
+  const file = req.files.file;
+  let path = __dirname + '/archivos/' + file.name;
+  const maxSize = 2 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+    return res.status(400).json({ error: "El archivo es demasiado grande. Máximo 2 MB." });
+  }
+  
 
   file.mv(path, function(err) {
     if (err)
       return res.status(500).send(err);
 
-    res.send('Archivo subido correctamente');
+    res.send('Archivo subido correctamente.' + file.size);
   });
 })

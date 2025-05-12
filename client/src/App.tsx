@@ -126,13 +126,12 @@ const App: React.FC = () => {
           </div>
           <h1 style={{ marginTop: "2rem" }}>Archivos</h1>
           <form onSubmit={handleSubmit}>
-            <input type="file" onChange={handleFileChange} />
+            <input type="file" accept=".pdf, .txt" onChange={handleFileChange} />
             <button type="submit">Subir archivo</button>
           </form>
         </>
       )}
-
-
+      
     </div>
   );
 };
