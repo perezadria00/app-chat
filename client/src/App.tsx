@@ -9,12 +9,10 @@ const App: React.FC = () => {
   const [user, setUser] = useState<null | { id: string; nombre: string; email: string }>(null);
   const [file, setFile] = useState<File | null>(null);
 
-  // Conectar al WebSocket si hay usuario
   useEffect(() => {
     if (!user) return;
 
     const ws = new WebSocket("ws://localhost:4000");
-
     ws.onopen = () => console.log("🔗 Conectado al WebSocket");
     ws.onmessage = (event) => {
       setMessages((prev) => [...prev, event.data]);
@@ -24,7 +22,6 @@ const App: React.FC = () => {
     return () => ws.close();
   }, [user]);
 
-  // Enviar mensaje al backend (REST)
   const sendMessage = async () => {
     if (!input || !user) return;
 
@@ -35,8 +32,7 @@ const App: React.FC = () => {
     });
 
     setInput("");
-
-  }
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -49,26 +45,24 @@ const App: React.FC = () => {
     if (!file) return;
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     try {
-      const response = await fetch('http://localhost:4000/upload', {
-        method: 'POST',
+      const response = await fetch("http://localhost:4000/upload", {
+        method: "POST",
         body: formData,
       });
 
       if (response.ok) {
-        console.log('Archivo subido con éxito');
+        console.log("Archivo subido con éxito");
       } else {
-        console.error('Error al subir el archivo');
+        console.error("Error al subir el archivo");
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     }
-
   };
 
-  // Guardar historial en historial.json
   const guardarHistorial = async () => {
     try {
       const response = await fetch("http://localhost:4000/api/save_hist", {
@@ -81,14 +75,27 @@ const App: React.FC = () => {
       console.log("✅ Historial guardado:", data);
       alert("Historial guardado correctamente");
     } catch (error) {
-      console.error("❌ Error al guardar historial:", error); 
+      console.error("❌ Error al guardar historial:", error);
       alert("Error al guardar el historial");
     }
   };
 
-  return (
-    <div>
+  const descargarHistorial = (formato: "json" | "txt") => {
+    const url =
+      formato === "txt"
+        ? "http://localhost:4000/api/view_hist?format=txt"
+        : "http://localhost:4000/api/view_hist";
 
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `historial.${formato}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div style={{ padding: "2rem" }}>
       {!user && (
         <>
           <Login onLogin={setUser} />
@@ -108,15 +115,23 @@ const App: React.FC = () => {
           <button onClick={guardarHistorial} style={{ marginTop: "1rem" }}>
             💾 Guardar historial
           </button>
+
+          <div style={{ marginTop: "1rem" }}>
+            <button onClick={() => descargarHistorial("json")}>
+              📥 Descargar historial (.json)
+            </button>
+            <button onClick={() => descargarHistorial("txt")} style={{ marginLeft: "1rem" }}>
+              📄 Descargar historial (.txt)
+            </button>
+          </div>
+          <h1 style={{ marginTop: "2rem" }}>Archivos</h1>
+          <form onSubmit={handleSubmit}>
+            <input type="file" accept=".pdf, .txt" onChange={handleFileChange} />
+            <button type="submit">Subir archivo</button>
+          </form>
         </>
       )}
-
-      <h1>Archivos</h1>
-      <form onSubmit={handleSubmit}>
-        <input type="file" accept=".pdf, .txt" onChange={handleFileChange} />
-        <button type="submit">Subir archivo</button>
-      </form> 
-
+      
     </div>
   );
 };
