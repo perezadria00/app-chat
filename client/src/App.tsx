@@ -8,14 +8,30 @@ const App: React.FC = () => {
   const [input, setInput] = useState("");
   const [user, setUser] = useState<null | { id: string; nombre: string; email: string }>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [editorContent, setEditorContent] = useState("");
 
   useEffect(() => {
     if (!user) return;
 
     const ws = new WebSocket("ws://localhost:4000");
+
     ws.onopen = () => console.log("🔗 Conectado al WebSocket");
+
     ws.onmessage = (event) => {
-      setMessages((prev) => [...prev, event.data]);
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "message") {
+          setMessages((prev) => [...prev, data.payload]);
+        }
+
+        if (data.type === "editor") {
+          setEditorContent(data.payload);
+        }
+      } catch {
+        // Mensaje plano antiguo
+        setMessages((prev) => [...prev, event.data]);
+      }
     };
 
     setSocket(ws);
@@ -25,10 +41,12 @@ const App: React.FC = () => {
   const sendMessage = async () => {
     if (!input || !user) return;
 
+    const fullMessage = `${user.nombre}: ${input}`;
+
     await fetch("http://localhost:4000/api/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: `${user.nombre}: ${input}` }),
+      body: JSON.stringify({ message: JSON.stringify({ type: "message", payload: fullMessage }) }),
     });
 
     setInput("");
@@ -54,12 +72,13 @@ const App: React.FC = () => {
       });
 
       if (response.ok) {
-        console.log("Archivo subido con éxito");
+        alert("✅ Archivo subido con éxito");
       } else {
-        console.error("Error al subir el archivo");
+        alert("❌ Error al subir el archivo");
       }
     } catch (error) {
       console.error("Error:", error);
+      alert("❌ Error de red");
     }
   };
 
@@ -72,11 +91,10 @@ const App: React.FC = () => {
       });
 
       const data = await response.json();
-      console.log("✅ Historial guardado:", data);
-      alert("Historial guardado correctamente");
+      alert("✅ Historial guardado correctamente");
     } catch (error) {
       console.error("❌ Error al guardar historial:", error);
-      alert("Error al guardar el historial");
+      alert("❌ Error al guardar el historial");
     }
   };
 
@@ -92,6 +110,15 @@ const App: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setEditorContent(value);
+
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "editor", payload: value }));
+    }
   };
 
   return (
@@ -112,6 +139,7 @@ const App: React.FC = () => {
             setInput={setInput}
             sendMessage={sendMessage}
           />
+
           <button onClick={guardarHistorial} style={{ marginTop: "1rem" }}>
             💾 Guardar historial
           </button>
@@ -124,14 +152,22 @@ const App: React.FC = () => {
               📄 Descargar historial (.txt)
             </button>
           </div>
-          <h1 style={{ marginTop: "2rem" }}>Archivos</h1>
+
+          <h2 style={{ marginTop: "2rem" }}>📄 Subir archivo</h2>
           <form onSubmit={handleSubmit}>
             <input type="file" accept=".pdf, .txt" onChange={handleFileChange} />
             <button type="submit">Subir archivo</button>
           </form>
+
+          <h2 style={{ marginTop: "2rem" }}>📝 Edición colaborativa</h2>
+          <textarea
+            value={editorContent}
+            onChange={handleEditorChange}
+            rows={10}
+            style={{ width: "100%", marginTop: "0.5rem" }}
+          />
         </>
       )}
-      
     </div>
   );
 };
