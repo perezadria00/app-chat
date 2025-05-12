@@ -3,6 +3,8 @@ const http = require("http");
 const WebSocket = require("ws");
 const cors = require("cors");
 const fileUpload = require("express-fileupload");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const port = 4000;
@@ -14,15 +16,34 @@ app.use(fileUpload());
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-// WebSocket solo para emitir mensajes
+const historialPath = path.join(__dirname, "data", "historial.json");
+const documentsDir = path.join(__dirname, "documents");
+if (!fs.existsSync(documentsDir)) fs.mkdirSync(documentsDir);
+
+// WebSocket: gestionar mensajes colaborativos y del editor
 wss.on("connection", (ws) => {
   console.log("Cliente conectado");
+
+  ws.on("message", (message) => {
+    try {
+      const data = JSON.parse(message);
+      // Reenviar a todos los demás clientes
+      wss.clients.forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(data));
+        }
+      });
+    } catch (error) {
+      console.error("Mensaje no JSON:", message);
+    }
+  });
+
   ws.on("close", () => {
     console.log("Cliente desconectado");
   });
 });
 
-// Endpoint para enviar mensaje a todos los WebSocket conectados
+// Endpoint: enviar mensajes (tipo: message)
 app.post("/api/message", (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "Mensaje vacío" });
@@ -36,32 +57,26 @@ app.post("/api/message", (req, res) => {
   res.json({ sent: true });
 });
 
-const fs = require("fs");
-const path = require("path");
-
-// Endpoint para el login de usuarios
+// Endpoint: login de usuario
 app.post("/login", (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email requerido" });
 
   const dataPath = path.join(__dirname, "data", "data.json");
-  let data;
   try {
     const raw = fs.readFileSync(dataPath, "utf8");
-    data = JSON.parse(raw);
+    const data = JSON.parse(raw);
+    const user = data.usuarios.find((u) => u.email === email);
+
+    if (!user) return res.status(401).json({ error: "Usuario no encontrado" });
+    res.json({ success: true, user });
   } catch (err) {
     console.error("Error leyendo data.json:", err);
-    return res.status(500).json({ error: "Error interno del servidor" });
+    res.status(500).json({ error: "Error interno del servidor" });
   }
-
-  const user = data.usuarios.find((u) => u.email === email);
-  if (!user) return res.status(401).json({ error: "Usuario no encontrado" });
-
-  res.json({ success: true, user });
 });
-const historialPath = path.join(__dirname, "data", "historial.json");
 
-// Endpoint para guardar historial
+// Endpoint: guardar historial
 app.post("/api/save_hist", (req, res) => {
   const { messages } = req.body;
   if (!Array.isArray(messages)) {
@@ -77,55 +92,74 @@ app.post("/api/save_hist", (req, res) => {
   }
 });
 
-// Endpoint para visualizar/exportar el historial
+// Endpoint: visualizar/exportar historial
 app.get("/api/view_hist", (req, res) => {
-  const format = req.query.format;
-  const historialPath = path.join(__dirname, "data", "historial.json");
-
   if (!fs.existsSync(historialPath)) {
     return res.status(404).json({ error: "No hay historial guardado." });
   }
 
   const raw = fs.readFileSync(historialPath, "utf8");
   const data = JSON.parse(raw);
+  const format = req.query.format;
 
   if (format === "txt") {
-    const textoPlano = data.mensajes.join("\n");
     res.setHeader("Content-Disposition", "attachment; filename=historial.txt");
     res.setHeader("Content-Type", "text/plain");
-    res.send(textoPlano);
+    res.send(data.mensajes.join("\n"));
   } else {
-    // Por defecto, devuelve JSON
     res.setHeader("Content-Disposition", "attachment; filename=historial.json");
     res.setHeader("Content-Type", "application/json");
     res.send(JSON.stringify(data, null, 2));
   }
 });
 
-
-server.listen(port, () => {
-  console.log(`Servidor escuchando en http://localhost:${port}`);
-});
-
-//Endpoint para enviar archivos
-app.post("/upload", function(req, res){
+// Endpoint: subir archivo (máximo 2MB)
+app.post("/upload", (req, res) => {
   if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).send('No se ha subido ningún archivo');
+    return res.status(400).send("No se ha subido ningún archivo");
   }
 
   const file = req.files.file;
-  let path = __dirname + '/archivos/' + file.name;
+  const savePath = path.join(__dirname, "archivos", file.name);
   const maxSize = 2 * 1024 * 1024;
 
   if (file.size > maxSize) {
     return res.status(400).json({ error: "El archivo es demasiado grande. Máximo 2 MB." });
   }
-  
 
-  file.mv(path, function(err) {
-    if (err)
-      return res.status(500).send(err);
-
-    res.send('Archivo subido correctamente.' + file.size);
+  file.mv(savePath, (err) => {
+    if (err) return res.status(500).send(err);
+    res.send("Archivo subido correctamente. Tamaño: " + file.size + " bytes");
   });
-})
+});
+
+// Endpoint: guardar documento colaborativo
+app.post("/api/save_doc", (req, res) => {
+  const { filename, content } = req.body;
+  if (!filename) return res.status(400).json({ error: "Nombre requerido" });
+
+  const filePath = path.join(documentsDir, filename);
+  fs.writeFileSync(filePath, content, "utf8");
+  res.json({ success: true, message: "Documento guardado" });
+});
+
+// Endpoint: abrir documento existente
+app.get("/api/open_doc/:filename", (req, res) => {
+  const filePath = path.join(documentsDir, req.params.filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: "Documento no encontrado" });
+  }
+
+  const content = fs.readFileSync(filePath, "utf8");
+  res.json({ content });
+});
+
+// Endpoint: listar documentos
+app.get("/api/list_docs", (req, res) => {
+  const files = fs.readdirSync(documentsDir).filter((f) => f.endsWith(".txt"));
+  res.json({ files });
+});
+
+server.listen(port, () => {
+  console.log(`Servidor escuchando en http://localhost:${port}`);
+});
