@@ -36,6 +36,8 @@ const App: React.FC = () => {
 
     setInput("");
 
+  }
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       setFile(event.target.files[0]);
