@@ -111,15 +111,6 @@ const App: React.FC = () => {
         </>
       )}
 
-      <h1>Chat REST → WebSocket</h1>
-      <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Escribe un mensaje" />
-      <button>Enviar</button>
-      <div>
-        {messages.map((msg, i) => (
-          <p key={i}>{msg}</p>
-        ))}
-      </div>
-
       <h1>Archivos</h1>
       <form onSubmit={handleSubmit}>
       <input type="file" onChange={handleFileChange} />
