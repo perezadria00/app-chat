@@ -8,6 +8,7 @@ const App: React.FC = () => {
   const [input, setInput] = useState("");
   const [user, setUser] = useState<null | { id: string; nombre: string; email: string }>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [fileList, setFileList] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -21,6 +22,18 @@ const App: React.FC = () => {
     setSocket(ws);
     return () => ws.close();
   }, [user]);
+
+  useEffect(() => {
+    const listarArchivos = async () => {
+      try{
+        const response = await fetch("http://localhost:4000/api/list");
+        console.log(response);
+      }catch(error){
+        console.log(error)
+      }
+    }
+    listarArchivos();
+  }, [])
 
   const sendMessage = async () => {
     if (!input || !user) return;
@@ -62,6 +75,13 @@ const App: React.FC = () => {
       console.error("Error:", error);
     }
   };
+
+  // const listarArchivos = async () => {
+  //   const response = await fetch("http://localhost:4000/upload", {
+  //     method: "GET"
+  //   });
+  //   console.log(response);
+  // }
 
   const guardarHistorial = async () => {
     try {
@@ -131,8 +151,9 @@ const App: React.FC = () => {
           </form>
         </>
       )}
-      
+      <h1> sadfsd</h1>
     </div>
+    
   );
 };
 

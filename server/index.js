@@ -129,3 +129,8 @@ app.post("/upload", function(req, res){
     res.send('Archivo subido correctamente.' + file.size);
   });
 })
+
+//Endpoint para listar archivos
+app.get("/api/list", (req, res) => {
+  res.status(200).send("dsfasdfasdf")
+})
