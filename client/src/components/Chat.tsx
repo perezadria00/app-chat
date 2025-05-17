@@ -13,44 +13,34 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ user, messages, input, setInput, sendMessage }) => {
+  const getHora = () => {
+    const ahora = new Date();
+    return ahora.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   return (
-    <div style={{ marginTop: "2rem", borderTop: "1px solid #ccc", paddingTop: "1rem" }}>
-      <h1>Chat REST → WebSocket</h1>
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Escribe un mensaje"
-        disabled={!user}
-        style={{
-          padding: "0.5rem",
-          width: "70%",
-          color: "black", // color del texto del input
-        }}
-      />
-      <button
-        onClick={sendMessage}
-        disabled={!user}
-        style={{ marginLeft: "1rem", padding: "0.5rem 1rem" }}
-      >
-        Enviar
-      </button>
-      <div
-        style={{
-          marginTop: "1rem",
-          maxHeight: "200px",
-          overflowY: "auto",
-          background: "#ffffff", // fondo blanco
-          color: "#000000", // texto negro
-          padding: "1rem",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-        }}
-      >
+    <div className="chat-box">
+      <h1 className="chat-title">Chat</h1>
+
+      <div className="chat-messages">
         {messages.map((msg, i) => (
-          <p key={i} style={{ margin: "0.25rem 0" }}>
-            {msg}
-          </p>
+          <div key={i} className="chat-message">
+            [{getHora()}] {msg}
+          </div>
         ))}
+      </div>
+
+      <div className="chat-controls">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Escribe un mensaje"
+          disabled={!user}
+          className="chat-input"
+        />
+        <button onClick={sendMessage} disabled={!user} className="button">
+          Enviar
+        </button>
       </div>
     </div>
   );
