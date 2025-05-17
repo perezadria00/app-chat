@@ -193,3 +193,14 @@ app.get('/api/descarga/:filename', (req, res) => {
     }
   });
 });
+
+
+//Endpoint para recuperar editores de documento
+app.get('/api/show_editors', (req, res) => {
+
+})
+
+//Endpoint para borrar editores de documento
+app.get('/api/delete_editors', (req, res) => {
+
+})
