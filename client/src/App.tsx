@@ -229,16 +229,16 @@ const App: React.FC = () => {
                 {filename && <span className="filename">🗂 {filename}</span>}
               </div>
               {/* {editingUser && <p className="editing-user">✍️ {editingUser} está escribiendo...</p>} */}
-              <div> 
+              <div className= "editing-user"> 
                 {fileEditors.length > 0 && (
                 <ul>
                   {fileEditors.map((item, index) => (
-                    <p className= "editing-user" key={index}>✍️ {item} está escribiendo... </p>
+                    <p key={index}>✍️ {item} está escribiendo... </p>
                   ))}
                 </ul>
                 )}
               </div>
-              
+
               <textarea
                 value={editorContent}
                 onChange={handleEditorChange}
