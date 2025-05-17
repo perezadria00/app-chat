@@ -37,16 +37,17 @@ const Login: React.FC<Props> = ({ onLogin }) => {
   };
 
   return (
-    <div>
-      <h2>Iniciar sesión</h2>
+    <div className="login-container">
+      <h2 className="login-title">🔐 Iniciar sesión</h2>
       <input
         type="email"
         placeholder="Email del usuario"
+        className="login-input"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
       />
-      <button onClick={handleLogin}>Entrar</button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <button onClick={handleLogin} className="login-button">Entrar</button>
+      {error && <p className="login-error">{error}</p>}
     </div>
   );
 };
