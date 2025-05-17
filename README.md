@@ -65,3 +65,5 @@ npm run dev
 ### Diseño y estilos
 
 Para el diseño de la vista se ha utilizado en su totalidad CSS
+La aplicación cambia en función de la anchura de la ventana
+
