@@ -228,7 +228,17 @@ const App: React.FC = () => {
                 <button onClick={() => guardarDocumento(true)} className="button">💾 Guardar</button>
                 {filename && <span className="filename">🗂 {filename}</span>}
               </div>
-              {editingUser && <p className="editing-user">✍️ {editingUser} está escribiendo...</p>}
+              {/* {editingUser && <p className="editing-user">✍️ {editingUser} está escribiendo...</p>} */}
+              <div> 
+                {fileEditors.length > 0 && (
+                <ul>
+                  {fileEditors.map((item, index) => (
+                    <p className= "editing-user" key={index}>✍️ {item} está escribiendo... </p>
+                  ))}
+                </ul>
+                )}
+              </div>
+              
               <textarea
                 value={editorContent}
                 onChange={handleEditorChange}
