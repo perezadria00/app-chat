@@ -1,6 +1,6 @@
 # App Chat
 
-Aplicación web que permite envio de mensajes, envio y descarga de ficheros .pdf y .txt y modificacíon de documentos con otras personas en tiempo real
+Aplicación web que permite envio de mensajes, envio y descarga de ficheros .pdf y .txt y modificación de documentos con otras personas en tiempo real
 
 ## Enlaces
 
@@ -44,7 +44,7 @@ npm run dev
 
 ## Como funciona
 
-# Rutas importantes
+### Rutas importantes
 
 ```
 /client/src/App.tsx          → Componente principal de cliente, devuelve la vista (frontend)
@@ -57,6 +57,11 @@ npm run dev
 /server/exports       → Carpeta que contiene el resultado de final de los documentos escritos por los usuarios
 ```
 
-# Diseño y estilos
+### Peticiones al servidor
+
+- Await - Se ha utilizado para peticiones más puntuales como descargar un archivo en concreto
+- WebSocket - Todas las funciones que requieran una actualización constante de la información como los mensajes, o quien esta editando se han creado usando WebSocket
+
+### Diseño y estilos
 
 Para el diseño de la vista se ha utilizado en su totalidad CSS
