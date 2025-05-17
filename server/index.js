@@ -170,3 +170,44 @@ app.get("/api/export_doc", (req, res) => {
 server.listen(port, () => {
   console.log(`Servidor escuchando en http://localhost:${port}`);
 });
+
+const FILES_DIR = path.join(__dirname, 'archivos');
+
+//Endpoint para listar archivos
+app.get('/api/list', (req, res) => {
+  fs.readdir(FILES_DIR, (err, files) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error al leer los archivos' });
+    }
+    res.json(files);
+  });
+});
+
+//Endpoint para descargar archivos
+app.get('/api/descarga/:filename', (req, res) => {
+  const filename = req.params.filename;
+
+  if (filename.includes('..')) {
+    return res.status(400).send('Nombre de archivo no válido');
+  }
+
+  const filePath = FILES_DIR + '/' + filename;
+
+  res.download(filePath, filename, (err) => {
+    if (err) {
+      console.error('Error al descargar:', err);
+      res.status(404).send('Archivo no encontrado');
+    }
+  });
+});
+
+
+//Endpoint para recuperar editores de documento
+app.get('/api/show_editors', (req, res) => {
+
+})
+
+//Endpoint para borrar editores de documento
+app.get('/api/delete_editors', (req, res) => {
+
+})

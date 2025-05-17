@@ -10,27 +10,41 @@ const App: React.FC = () => {
   const [input, setInput] = useState("");
   const [user, setUser] = useState<null | { id: string; nombre: string; email: string }>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [fileList, setFileList] = useState<string[]>([]);
   const [editorContent, setEditorContent] = useState("");
   const [filename, setFilename] = useState("");
   const [availableDocs, setAvailableDocs] = useState<string[]>([]);
   const [changeLog, setChangeLog] = useState<string[]>([]);
   const [editingUser, setEditingUser] = useState<string | null>(null);
-const autosaveRef = useRef<number | null>(null);
+  const [fileEditors, setFileEditors] = useState<string[]>([]);
+  const autosaveRef = useRef<number | null>(null);
   const logTimeoutRef = useRef<number | null>(null);
+  const timeoutIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
     const ws = new WebSocket("ws://localhost:4000");
-    ws.onopen = () => console.log("\uD83D\uDD17 Conectado al WebSocket");
+    ws.onopen = () => console.log("🔗 Conectado al WebSocket");
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+
         if (data.type === "message") setMessages((prev) => [...prev, data.payload]);
         if (data.type === "editor") setEditorContent(data.payload);
         if (data.type === "log") setChangeLog((prev) => [...prev, data.payload]);
         if (data.type === "editing") setEditingUser(data.payload);
+
+        if (data.type === "FileEditor") {
+          setFileEditors((prev) =>
+            prev.includes(data.payload.trim()) ? prev : [...prev, data.payload.trim()]
+          );
+        }
+
+        if (data.type === "FileEditorDelete") {
+          setFileEditors((prev) => prev.filter((item) => item !== data.payload));
+        }
       } catch {
         setMessages((prev) => [...prev, event.data]);
       }
@@ -44,8 +58,9 @@ const autosaveRef = useRef<number | null>(null);
     if (!user) return;
 
     listarDocumentos();
+    listarArchivos();
 
-    autosaveRef.current = setInterval(() => {
+    autosaveRef.current = window.setInterval(() => {
       if (filename && editorContent) guardarDocumento(false);
     }, 10000);
 
@@ -54,11 +69,21 @@ const autosaveRef = useRef<number | null>(null);
     };
   }, [user, editorContent, filename]);
 
+  const listarArchivos = async () => {
+    try {
+      const response = await fetch('http://localhost:4000/api/list');
+      if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+      const data: string[] = await response.json();
+      setFileList(data);
+    } catch (error) {
+      console.error('Error al obtener archivos:', error);
+    }
+  };
+
   const sendMessage = async () => {
     if (!input || !user) return;
     const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const fullMessage = `[${hora}] ${user.nombre}: ${input}`;
-
     await fetch("http://localhost:4000/api/message", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -69,12 +94,11 @@ const autosaveRef = useRef<number | null>(null);
 
   const guardarHistorial = async () => {
     try {
-      const response = await fetch("http://localhost:4000/api/save_hist", {
+      await fetch("http://localhost:4000/api/save_hist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages }),
       });
-      await response.json();
       alert("✅ Historial guardado correctamente");
     } catch {
       alert("❌ Error al guardar historial");
@@ -82,10 +106,7 @@ const autosaveRef = useRef<number | null>(null);
   };
 
   const descargarHistorial = (formato: "json" | "txt") => {
-    const url = formato === "txt"
-      ? "http://localhost:4000/api/view_hist?format=txt"
-      : "http://localhost:4000/api/view_hist";
-
+    const url = `http://localhost:4000/api/view_hist${formato === "txt" ? "?format=txt" : ""}`;
     const link = document.createElement("a");
     link.href = url;
     link.download = `historial.${formato}`;
@@ -111,18 +132,14 @@ const autosaveRef = useRef<number | null>(null);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) return;
-
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       const res = await fetch("http://localhost:4000/upload", {
         method: "POST",
         body: formData,
       });
-      res.ok
-        ? alert("✅ Archivo subido correctamente")
-        : alert("❌ Error al subir archivo");
+      alert(res.ok ? "✅ Archivo subido correctamente" : "❌ Error al subir archivo");
     } catch {
       alert("❌ Error de red");
     }
@@ -131,7 +148,6 @@ const autosaveRef = useRef<number | null>(null);
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setEditorContent(value);
-
     if (socket && socket.readyState === WebSocket.OPEN && user) {
       socket.send(JSON.stringify({ type: "editor", payload: value }));
       socket.send(JSON.stringify({ type: "editing", payload: user.nombre }));
@@ -140,6 +156,17 @@ const autosaveRef = useRef<number | null>(null);
       logTimeoutRef.current = window.setTimeout(() => {
         socket.send(JSON.stringify({ type: "log", payload: `${user.nombre} realizó cambios en el documento` }));
       }, 3000);
+
+      if (timeoutIdRef.current !== null) {
+        clearTimeout(timeoutIdRef.current);
+      } else {
+        socket.send(JSON.stringify({ type: "FileEditor", payload: user.nombre }));
+      }
+
+      timeoutIdRef.current = window.setTimeout(() => {
+        socket.send(JSON.stringify({ type: "FileEditorDelete", payload: user.nombre }));
+        timeoutIdRef.current = null;
+      }, 5000);
     }
   };
 
@@ -243,6 +270,16 @@ const autosaveRef = useRef<number | null>(null);
                 <input type="file" accept=".pdf,.txt" onChange={handleFileChange} />
                 <button type="submit" className="button">Subir</button>
               </form>
+              <div className="doc-list">
+                <strong>📄 Archivos disponibles:</strong>
+                <ul>
+                  {fileList.map((file, index) => (
+                    <li key={index}>
+                      {file} — <a href={`http://localhost:4000/api/descarga/${encodeURIComponent(file)}`} download>Descargar</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
             <div className="card historial">
