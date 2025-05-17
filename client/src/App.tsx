@@ -8,6 +8,7 @@ const App: React.FC = () => {
   const [input, setInput] = useState("");
   const [user, setUser] = useState<null | { id: string; nombre: string; email: string }>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [fileList, setFileList] = useState<string[]>([]);
   const [editorContent, setEditorContent] = useState("");
   const [filename, setFilename] = useState("");
   const [availableDocs, setAvailableDocs] = useState<string[]>([]);
@@ -38,6 +39,24 @@ const App: React.FC = () => {
     setSocket(ws);
     return () => ws.close();
   }, [user]);
+
+  useEffect(() => {
+    const listarArchivos = async () => {
+      try {
+        const response = await fetch('http://localhost:4000/api/list');
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+
+        const data: string[] = await response.json();
+        setFileList(data);
+      } catch (error) {
+        console.error('Error al obtener archivos:', error);
+      } 
+    };
+    listarArchivos();
+  }, [])
 
   const sendMessage = async () => {
     if (!input || !user) return;
@@ -201,6 +220,23 @@ const App: React.FC = () => {
             <input type="file" accept=".pdf,.txt" onChange={handleFileChange} />
             <button type="submit">Subir archivo</button>
           </form>
+
+          <div>
+      <h2>Lista de Archivos</h2>
+      <ul>
+        {fileList.map((file, index) => (
+          <li key={index}>
+            {file}
+            <a
+              href={`http://localhost:4000/api/descarga/${encodeURIComponent(file)}`}
+              download
+            >
+              Descargar
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
 
           <h2 style={{ marginTop: "2rem" }}>📝 Editor colaborativo</h2>
           <div style={{ marginBottom: "0.5rem" }}>
