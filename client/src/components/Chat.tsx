@@ -25,7 +25,7 @@ const Chat: React.FC<ChatProps> = ({ user, messages, input, setInput, sendMessag
       <div className="chat-messages">
         {messages.map((msg, i) => (
           <div key={i} className="chat-message">
-            [{getHora()}] {msg}
+            {msg}
           </div>
         ))}
       </div>
