@@ -12,6 +12,8 @@ const App: React.FC = () => {
   const [editorContent, setEditorContent] = useState("");
   const [filename, setFilename] = useState("");
   const [availableDocs, setAvailableDocs] = useState<string[]>([]);
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
+  const [fileEditors, setFileEditors] = useState<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -31,6 +33,18 @@ const App: React.FC = () => {
         if (data.type === "editor") {
           setEditorContent(data.payload);
         }
+
+        if(data.type ==="FileEditor"){
+          setFileEditors(prev => {
+            if (prev.includes(data.payload.trim())) return prev;
+            return [...prev, data.payload.trim()];
+          });
+        }
+
+        if(data.type === "FileEditorDelete"){
+          setFileEditors(prev => prev.filter(item => item !== data.payload));
+        }
+
       } catch {
         setMessages((prev) => [...prev, event.data]); // fallback para mensajes antiguos
       }
@@ -56,7 +70,7 @@ const App: React.FC = () => {
       } 
     };
     listarArchivos();
-  }, [])
+  }, [fileList])
 
   const sendMessage = async () => {
     if (!input || !user) return;
@@ -133,6 +147,7 @@ const App: React.FC = () => {
   const handleEditorChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setEditorContent(value);
+    startIntervalWithTimeout()
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "editor", payload: value }));
@@ -191,6 +206,28 @@ const App: React.FC = () => {
     if (user) listarDocumentos();
   }, [user]);
 
+  const startIntervalWithTimeout = () => {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }else{
+      console.log(user?.nombre)
+      if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "FileEditor", payload: user?.nombre }));
+    }
+    }
+
+    // Terminar después de 5 segundos
+    const newTimeoutId = window.setTimeout(() => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "FileEditorDelete", payload: user?.nombre }));
+    }
+      setTimeoutId(null);
+    }, 5000);
+    console.log(fileEditors)
+    
+    setTimeoutId(newTimeoutId);
+  };
+
   return (
     <div style={{ padding: "2rem" }}>
       {!user && (
@@ -245,6 +282,18 @@ const App: React.FC = () => {
               💾 Guardar documento
             </button>
             {filename && <span style={{ marginLeft: "1rem" }}>🗂 {filename}</span>}
+          </div>
+
+          {/* mostrar quien esta editando el documento */}
+          <div> 
+            {fileEditors.length > 0 && (
+            <ul>
+              {fileEditors.map((item, index) => (
+                <span key={index}>{item}, </span>
+              ))}
+              <span> está editando el documento</span>
+            </ul>
+            )}
           </div>
 
           <textarea
