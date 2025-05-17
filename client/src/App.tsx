@@ -25,13 +25,19 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const listarArchivos = async () => {
-      try{
-        const response = await fetch("http://localhost:4000/api/list");
-        console.log(response);
-      }catch(error){
-        console.log(error)
-      }
-    }
+      try {
+        const response = await fetch('http://localhost:4000/api/list');
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+
+        const data: string[] = await response.json();
+        setFileList(data);
+      } catch (error) {
+        console.error('Error al obtener archivos:', error);
+      } 
+    };
     listarArchivos();
   }, [])
 
@@ -151,7 +157,22 @@ const App: React.FC = () => {
           </form>
         </>
       )}
-      <h1> sadfsd</h1>
+      <div>
+      <h2>Lista de Archivos</h2>
+      <ul>
+        {fileList.map((file, index) => (
+          <li key={index}>
+            {file}
+            <a
+              href={`http://localhost:4000/api/descarga/${encodeURIComponent(file)}`}
+              download
+            >
+              Descargar
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
     </div>
     
   );
