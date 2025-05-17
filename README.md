@@ -28,17 +28,25 @@ Aplicación web que permite envio de mensajes, envio y descarga de ficheros .pdf
 
 1. Instalar dependecias de servidor y react
 ```bash
+cd .\client\
 npm install
-```   
+``` 
+
+```bash
+cd .\server\
+npm install
+```     
 
 2. Abrir puerto al servidor con NodeJS
 
 ```bash
-node .\server\index.js
+cd .\server\
+node index.js
 ```
 
 3. Ejecutar el entorno de React + vite
 ```bash
+cd .\client\  
 npm run dev
 ```
 
